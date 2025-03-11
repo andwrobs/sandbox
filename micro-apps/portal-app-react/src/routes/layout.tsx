@@ -46,8 +46,8 @@ export default function PortalLayout() {
             id: "micro-app-b",
             name: "Micro-App B - React",
             version: "0.0.0",
-            baseUrl: "http://localhost:7001",
-            entryPoint: "/micro-app-b",
+            baseUrl: "http://localhost:4200",
+            entryPoint: "/",
             permittedInternalRoutes: ["/"],
             permittedParentRoutes: ["/micro-app-b"],
             portalContext: {

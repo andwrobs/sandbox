@@ -7,5 +7,5 @@ export const clientLoader = async ({}: Route.ClientLoaderArgs) => {
 };
 
 export default function MicroAppA() {
-  return <MicroAppIframeContainer appId="micro-app-a" />;
+  return <MicroAppIframeContainer appId="micro-app-b" />;
 }
