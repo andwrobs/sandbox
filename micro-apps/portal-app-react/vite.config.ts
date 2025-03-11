@@ -4,9 +4,8 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  base: "/micro-app-a",
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
   server: {
-    port: 7001,
+    port: 7000,
   },
 });
