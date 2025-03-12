@@ -11,4 +11,3 @@
 
 export * from "./micro-app.angular";
 export * from "./portal-app.angular";
-export * from "./components";

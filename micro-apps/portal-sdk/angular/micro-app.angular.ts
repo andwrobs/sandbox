@@ -2,7 +2,6 @@
 // Angular implementation would go here
 // This file was not present in the original core.types.ts
 
-import { Injectable, OnDestroy } from "@angular/core";
 import { BehaviorSubject, Observable, firstValueFrom, Subject } from "rxjs";
 import { filter, take, timeout } from "rxjs/operators";
 import {
@@ -13,6 +12,7 @@ import {
   PortalEventTypes,
   PORTAL_TARGET_ID,
   event_schemas,
+  PortalEventTypeKey,
 } from "../shared";
 
 /**
@@ -26,20 +26,21 @@ interface MicroAppState {
   error: Error | null;
 }
 
+type valueof<T> = T[keyof T];
+
 /**
  * Angular service for managing a micro-app's communication with the portal
+ * This version doesn't use decorators for easier building
  */
-@Injectable({
-  providedIn: "root",
-})
-export class MicroAppService implements OnDestroy {
+export class MicroAppService {
   private abortController: AbortController | null = null;
+  private messageHandlers = new Map<PortalEventTypeKey, (data: any) => void>();
 
   // State management using BehaviorSubject
   private state = new BehaviorSubject<MicroAppState>({
     id: null,
     app: null,
-    debug: true,
+    debug: false,
     initialized: false,
     error: null,
   });
@@ -58,25 +59,46 @@ export class MicroAppService implements OnDestroy {
 
   // Subject for initialization completion
   private initCompleted = new Subject<void>();
+  readonly initCompleted$ = this.initCompleted.asObservable();
 
-  constructor() {}
+  constructor() {
+    // Register default message handlers
+    this.registerMessageHandler(PortalEventTypes.PORTAL_INIT_APP, (data) => {
+      this.log("App initialized with data:", data);
+      this.updateState({
+        app: data,
+        initialized: true,
+      });
+    });
+  }
 
   /**
    * Initialize the micro-app with the portal
    */
-  async initialize({ id }: { id: string }): Promise<void> {
+  async initialize({
+    id,
+    debug = false,
+  }: {
+    id: string;
+    debug?: boolean;
+  }): Promise<void> {
     try {
+      if (this.state.value.initialized) {
+        this.log("Micro-app already initialized");
+        return;
+      }
+
       // Reset state
       this.state.next({
         id: null,
         app: null,
-        debug: true,
+        debug,
         initialized: false,
         error: null,
       });
 
-      // Set App ID
-      this.updateState({ id });
+      // Set App ID and debug mode
+      this.updateState({ id, debug });
 
       // Set up message listener
       this.subscribeToPortal();
@@ -93,7 +115,7 @@ export class MicroAppService implements OnDestroy {
         )
       );
 
-      console.log("Micro-app initialized successfully");
+      this.log("Micro-app initialized successfully");
       this.initCompleted.next();
     } catch (error) {
       const errorObj =
@@ -105,10 +127,13 @@ export class MicroAppService implements OnDestroy {
   }
 
   /**
-   * Cleanup when the micro-app is unmounted
+   * Register a custom message handler for a specific event type
    */
-  ngOnDestroy(): void {
-    this.destroy();
+  registerMessageHandler(
+    type: PortalEventTypeKey,
+    handler: (data: any) => void
+  ): void {
+    this.messageHandlers.set(type, handler);
   }
 
   /**
@@ -118,9 +143,12 @@ export class MicroAppService implements OnDestroy {
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
-    } else {
-      console.debug("Micro-app service already destroyed.");
     }
+
+    this.messageHandlers.clear();
+    this.initCompleted.complete();
+
+    this.log("Micro-app service destroyed");
   }
 
   /**
@@ -139,6 +167,8 @@ export class MicroAppService implements OnDestroy {
     window.addEventListener("message", this.handleMessage.bind(this), {
       signal: this.abortController.signal,
     });
+
+    this.log("Subscribed to portal messages");
   }
 
   /**
@@ -155,8 +185,9 @@ export class MicroAppService implements OnDestroy {
       };
 
       window.parent.postMessage(portalMessage, "*");
+      this.log("Posted message to portal:", portalMessage);
     } else {
-      console.debug(
+      console.warn(
         "Error: cannot post message to portal before application is initialized."
       );
     }
@@ -171,23 +202,25 @@ export class MicroAppService implements OnDestroy {
       if (!appId) return;
 
       const parseResult = event_schemas.portalMessage.safeParse(event.data);
-      if (!parseResult.success) return;
+      if (!parseResult.success) {
+        this.log("Received invalid message format", event.data);
+        return;
+      }
 
       const message = parseResult.data;
-      if (message.targetId !== appId) return;
+      if (message.targetId !== appId) {
+        this.log("Message not targeted for this app", message);
+        return;
+      }
 
-      // Handle the message based on its type
-      switch (message.type) {
-        case PortalEventTypes.PORTAL_INIT_APP:
-          console.log("App initialized with data:", message.data);
-          this.updateState({
-            app: message.data,
-            initialized: true,
-          });
-          break;
+      this.log("Received message:", message);
 
-        default:
-          console.debug(`Unhandled message type: ${message.type}`);
+      // Handle the message based on its type using registered handlers
+      const handler = this.messageHandlers.get(message.type);
+      if (handler) {
+        handler(message.data);
+      } else {
+        this.log(`No handler registered for message type: ${message.type}`);
       }
     } catch (error) {
       console.error("Error processing message:", error);
@@ -201,7 +234,7 @@ export class MicroAppService implements OnDestroy {
     this.postMessageToPortal({
       type: PortalEventTypes.APP_READY,
       data: {
-        message: `Micro-app ${this.state.value.id} is ready to live its best micro-app life ✅`,
+        message: `${this.state.value.id} is ready ✅`,
       },
     });
   }
@@ -214,9 +247,7 @@ export class MicroAppService implements OnDestroy {
       type: PortalEventTypes.APP_ERROR,
       data: {
         error: "initialization_error",
-        message:
-          error ||
-          `Micro-app ${this.state.value.id} is _not_ ready to live its best micro-app life ❌`,
+        message: error || `Error in ${this.state.value.id} ❌`,
       },
     });
   }
@@ -277,6 +308,18 @@ export class MicroAppService implements OnDestroy {
       ...this.state.value,
       ...partialState,
     });
+  }
+
+  /**
+   * Conditional logging based on debug setting
+   */
+  private log(...args: any[]): void {
+    if (this.state.value.debug) {
+      console.log(
+        `[MicroAppService:${this.state.value.id || "unknown"}]`,
+        ...args
+      );
+    }
   }
 }
 

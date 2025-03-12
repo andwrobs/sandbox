@@ -219,9 +219,7 @@ export const useMicroAppStore = create<State & Actions>()(
       get().postMessageToPortal({
         type: PortalEventTypes.APP_READY,
         data: {
-          message: `Micro-app ${
-            get().id
-          } is ready to live its best micro-app life ✅`,
+          message: `Hello from ${get().id}!`,
         },
       });
     },
@@ -234,11 +232,7 @@ export const useMicroAppStore = create<State & Actions>()(
         type: PortalEventTypes.APP_ERROR,
         data: {
           error: "initialization_error",
-          message:
-            error ||
-            `Micro-app ${
-              get().id
-            } is _not_ ready to live its best micro-app life ❌`,
+          message: error || `Error in ${get().id} ❌`,
         },
       });
     },

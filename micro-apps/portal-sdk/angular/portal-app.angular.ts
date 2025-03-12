@@ -24,7 +24,7 @@ interface IframeRefs {
 @Injectable({
   providedIn: "root",
 })
-export class IframeRefService {
+class IframeRefService {
   private iframeRefs: IframeRefs = {};
 
   /**
@@ -75,7 +75,7 @@ interface PortalInitializerProps {
 @Injectable({
   providedIn: "root",
 })
-export class PortalAppService implements OnDestroy {
+class PortalAppService implements OnDestroy {
   private abortController: AbortController | null = null;
   private navigateFunction: ((routePath: string) => void) | null = null;
 
@@ -359,3 +359,5 @@ function map<T, R>(fn: (value: T) => R) {
     });
   };
 }
+
+export { PortalAppService };

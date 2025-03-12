@@ -33,6 +33,9 @@ export const PortalEventTypes = {
   APP_CLOSE_MODAL: "app:modal:close",
 } as const;
 
+export type PortalEventTypeKey =
+  (typeof PortalEventTypes)[keyof typeof PortalEventTypes];
+
 /**
  * Schema for modal content
  * @description Defines the structure of content displayed in a modal

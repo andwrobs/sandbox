@@ -1,79 +1,107 @@
-# Angular Micro App
+# Micro App B (Angular)
 
-This is a standalone Angular micro-app that demonstrates integration with the portal SDK. It's built using Angular's standalone components and lazy loading for optimal performance.
+This is an Angular-based micro-app that integrates with the portal system. It demonstrates how to build a micro-app using Angular that can communicate with a parent portal application.
 
 ## Features
 
-- Integration with Portal SDK
-- Standalone components
-- Lazy-loaded routes
-- Inter-app communication
-- Modal dialogs
-
-## Project Structure
-
-```
-micro-app-b-angular/
-├── src/
-│   ├── app/
-│   │   ├── components/
-│   │   │   └── bottom-panel/
-│   │   │       └── bottom-panel.component.ts
-│   │   ├── routes/
-│   │   │   ├── accounts/
-│   │   │   │   ├── account-detail/
-│   │   │   │   │   └── account-detail.component.ts
-│   │   │   │   └── accounts.component.ts
-│   │   │   ├── home/
-│   │   │   │   └── home.component.ts
-│   │   │   └── layout/
-│   │   │       └── layout.component.ts
-│   │   ├── services/
-│   │   │   └── micro-app.service.ts
-│   │   ├── app.component.ts
-│   │   ├── app.config.ts
-│   │   └── app.routes.ts
-│   ├── index.html
-│   ├── main.ts
-│   └── styles.scss
-├── angular.json
-├── package.json
-├── tsconfig.json
-├── tsconfig.app.json
-└── tsconfig.spec.json
-```
+- Portal integration using the Portal SDK
+- Two-way communication with the parent portal
+- Navigation between micro-apps
+- Modal display capabilities
+- Receiving and displaying data from the portal
 
 ## Getting Started
 
-1. Install dependencies:
+### Prerequisites
 
-   ```
-   npm install
-   ```
+- Node.js (v16 or later)
+- npm or yarn
 
-2. Start the development server:
-   ```
-   npm start
-   ```
+### Installation
 
-## Integration with Portal SDK
+1. Clone the repository
+2. Install dependencies:
 
-This micro-app integrates with the portal SDK to enable communication with the parent portal application. The integration is handled by the `MicroAppService` which wraps the portal SDK's `MicroAppService`.
+```bash
+npm install
+```
 
-## Routes
+### Development
 
-- `/` - Home page
-- `/accounts` - List of accounts
-- `/accounts/:id` - Account details
+To start the development server:
 
-## Communication
+```bash
+npm start
+```
 
-The micro-app can communicate with the parent portal application through:
+This will start the Angular development server at `http://localhost:4200/`.
 
-- Navigation events
-- Modal dialogs
-- Custom events
+## Portal Integration
 
-## Development
+This micro-app integrates with the portal system using a custom Portal SDK service. The integration allows:
 
-This project was generated with Angular CLI version 17.2.0.
+1. Bidirectional communication with the parent portal
+2. Receiving permissions and configuration from the portal
+3. Requesting navigation to other micro-apps
+4. Displaying modals in the parent portal
+5. Receiving initial data from the portal
+
+### Key Components
+
+- `PortalService`: The main service that handles communication with the portal
+- `HomeComponent`: A component that demonstrates the portal integration
+- `portal-event-handler.ts`: Helper functions for handling portal events
+
+### Usage Example
+
+```typescript
+import { Component, OnInit } from "@angular/core";
+import { PortalService, PortalEventType } from "./services/portal-sdk";
+
+@Component({
+  selector: "app-example",
+  template: '<button (click)="sendMessage()">Send Message</button>',
+})
+export class ExampleComponent implements OnInit {
+  constructor(private portalService: PortalService) {}
+
+  ngOnInit() {
+    // Initialize the portal service
+    this.portalService.initialize({
+      appId: "micro-app-b",
+      debug: true,
+    });
+  }
+
+  sendMessage() {
+    // Send a message to the portal
+    this.portalService.postMessageToPortal(PortalEventType.CUSTOM, {
+      message: "Hello from Angular!",
+    });
+  }
+}
+```
+
+## Integration with Parent Portal
+
+To integrate this micro-app with the parent portal:
+
+1. Register the micro-app in the parent portal:
+
+```typescript
+portalService.registerMicroApp({
+  id: "micro-app-b",
+  name: "Micro-App B (Angular)",
+  baseUrl: "http://localhost:4200",
+  entryPoint: "http://localhost:4200/",
+  permittedInternalRoutes: ["/", "/home", "/profile"],
+  permittedParentRoutes: ["/micro-app-a", "/settings"],
+});
+```
+
+2. Create an iframe container in the parent portal to load the micro-app
+3. Handle events from the micro-app in the parent portal
+
+## License
+
+MIT
